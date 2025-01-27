@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,8 +35,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,7 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androngel.todolist.ui.theme.TODOListTheme
-import com.androngel.todolist.R
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,11 +76,13 @@ fun MainPage() {
 
     val myContext = LocalContext.current
 
-    val todoName = remember {
+    var todoName by remember {
         mutableStateOf("")
     }
-    val itemList = readData(myContext)
+    val itemList = remember { mutableStateListOf<String>().apply { addAll(readData(myContext)) } }
+
     val focusManager = LocalFocusManager.current
+
     val deleteDialogStatus = remember {
         mutableStateOf(false)
     }
@@ -102,13 +105,14 @@ fun MainPage() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(5.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
 
             TextField(
-                value = todoName.value,
+                value = todoName,
                 onValueChange = {
-                    todoName.value = it
+                    todoName = it
                 },
                 label = { Text(text = "Enter TODO") },
                 colors = TextFieldDefaults.textFieldColors(
@@ -120,23 +124,23 @@ fun MainPage() {
                     textColor = Color.White,
                     cursorColor = Color.White
                 ),
-                shape = RoundedCornerShape(5.dp),
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier
-                    .border(1.dp, Color.Black, RoundedCornerShape(5.dp))
+                    .border(1.dp, Color.Black, MaterialTheme.shapes.small)
                     .weight(7F) //3F for the button weight
                     .height(60.dp),
                 textStyle = TextStyle(textAlign = TextAlign.Center)
 
             )
 
-            Spacer(modifier = Modifier.width(5.dp))
+//            Spacer(modifier = Modifier.width(5.dp))
 
             Button(
                 onClick = {
-                          if (todoName.value.isNotEmpty()){
-                              itemList.add(todoName.value)
-                              writeData(itemList,myContext)
-                              todoName.value = ""
+                          if (todoName.isNotEmpty()){
+                              itemList.add(todoName)
+                              writeData(itemList, myContext)
+                              todoName = ""
                               focusManager.clearFocus()
                           }else{
                               Toast.makeText(myContext,"Please enter a TODO",Toast.LENGTH_SHORT).show()
@@ -146,10 +150,10 @@ fun MainPage() {
                     .weight(3F)
                     .height(60.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(id = R.color.green),
+                    containerColor = colorResource(R.color.green),
                     contentColor = Color.White
                 ),
-                shape = RoundedCornerShape(5.dp),
+                shape = MaterialTheme.shapes.small,
                 border = BorderStroke(1.dp, Color.Black)
             ) {
                 Text(text = "Add", fontSize = 20.sp)
@@ -246,7 +250,7 @@ fun MainPage() {
                     TextButton(
                         onClick = {
                             itemList.removeAt(clickedItemIndex.value)
-                            writeData(itemList,myContext)
+                            writeData(itemList, myContext)
                             deleteDialogStatus.value = false
                             Toast.makeText(myContext, "Item is removed from the list.",Toast.LENGTH_SHORT).show()
                         }
