@@ -9,7 +9,7 @@ const val FILE_NAME = "todolist.dat"
 fun writeData(items: List<String>, context: Context) {
     context.openFileOutput(FILE_NAME, Context.MODE_PRIVATE).use {
         ObjectOutputStream(it).writeObject(
-            ArrayList<String>().apply { addAll(items) }
+            ArrayList<String>(items)
         )
     }
 }
