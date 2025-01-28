@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -75,29 +74,23 @@ class MainActivity : ComponentActivity() {
 fun MainPage() {
 
     val myContext = LocalContext.current
-
-    var todoName by remember {
-        mutableStateOf("")
-    }
-    val itemList = remember { mutableStateListOf<String>().apply { addAll(readData(myContext)) } }
-
     val focusManager = LocalFocusManager.current
 
-    val deleteDialogStatus = remember {
-        mutableStateOf(false)
+    val itemList = remember { mutableStateListOf<String>().apply { addAll(readData(myContext)) } }
+    var todoName by remember { mutableStateOf("") }
+
+    var clickedItemIndex by remember { mutableStateOf(0) }
+    var clickedItem by remember { mutableStateOf("") }
+    var updateDialogStatus by remember { mutableStateOf(false) }
+    var deleteDialogStatus by remember { mutableStateOf(false) }
+    var textDialogStatus by remember { mutableStateOf(false) }
+
+    @Composable
+    fun update(itemList: List<String>) {
+        writeData(itemList, myContext)
     }
-    val clickedItemIndex = remember {
-        mutableStateOf(0)
-    }
-    val updateDialogStatus = remember {
-        mutableStateOf(false)
-    }
-    val clickedItem = remember {
-        mutableStateOf("")
-    }
-    val textDialogStatus = remember {
-        mutableStateOf(false)
-    }
+    // subscribe to autoupdate
+    update(itemList)
 
     Column(modifier = Modifier.fillMaxSize()) {
 
@@ -111,10 +104,8 @@ fun MainPage() {
 
             TextField(
                 value = todoName,
-                onValueChange = {
-                    todoName = it
-                },
-                label = { Text(text = "Enter TODO") },
+                onValueChange = { todoName = it },
+                label = { Text("Enter TODO") },
                 colors = TextFieldDefaults.textFieldColors(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
@@ -126,25 +117,21 @@ fun MainPage() {
                 ),
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier
-                    .border(1.dp, Color.Black, MaterialTheme.shapes.small)
+                    .border(2.dp, Color.Black, MaterialTheme.shapes.small)
                     .weight(7F) //3F for the button weight
                     .height(60.dp),
                 textStyle = TextStyle(textAlign = TextAlign.Center)
-
             )
-
-//            Spacer(modifier = Modifier.width(5.dp))
 
             Button(
                 onClick = {
-                          if (todoName.isNotEmpty()){
-                              itemList.add(todoName)
-                              writeData(itemList, myContext)
-                              todoName = ""
-                              focusManager.clearFocus()
-                          }else{
-                              Toast.makeText(myContext,"Please enter a TODO",Toast.LENGTH_SHORT).show()
-                          }
+                    if (todoName.isNotEmpty()) {
+                        itemList.add(todoName)
+                        todoName = ""
+                        focusManager.clearFocus()
+                    } else {
+                        Toast.makeText(myContext, "Please enter a TODO", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 modifier = Modifier
                     .weight(3F)
@@ -154,11 +141,10 @@ fun MainPage() {
                     contentColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.small,
-                border = BorderStroke(1.dp, Color.Black)
+                border = BorderStroke(2.dp, Color.Black)
             ) {
                 Text(text = "Add", fontSize = 20.sp)
             }
-
         }
 
         LazyColumn {
@@ -172,12 +158,12 @@ fun MainPage() {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 1.dp),
+                            .padding(bottom = 2.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.White
                         ),
-                        shape = RoundedCornerShape(0.dp)
+                        shape = MaterialTheme.shapes.extraSmall
                     ) {
                         Row(
                             modifier = Modifier
@@ -196,35 +182,37 @@ fun MainPage() {
                                 modifier = Modifier
                                     .width(300.dp)
                                     .clickable {
-                                        clickedItem.value = item
-                                        textDialogStatus.value = true
+                                        clickedItem = item
+                                        textDialogStatus = true
                                     }
                             )
 
-                            Row() {
+                            Row {
                                 IconButton(
                                     onClick = {
-                                        updateDialogStatus.value = true
-                                        clickedItemIndex.value = index
-                                        clickedItem.value = item
+                                        updateDialogStatus = true
+                                        clickedItemIndex = index
+                                        clickedItem = item
                                     }
                                 ) {
                                     Icon(
                                         Icons.Filled.Edit,
                                         contentDescription = "edit",
-                                        tint = Color.White)
+                                        tint = Color.White
+                                    )
                                 }
 
                                 IconButton(
                                     onClick = {
-                                        deleteDialogStatus.value = true
-                                        clickedItemIndex.value = index
+                                        deleteDialogStatus = true
+                                        clickedItemIndex = index
                                     }
                                 ) {
                                     Icon(
                                         Icons.Filled.Delete,
                                         contentDescription = "delete",
-                                        tint = Color.White)
+                                        tint = Color.White
+                                    )
                                 }
                             }
 
@@ -233,13 +221,12 @@ fun MainPage() {
 
                 }
             )
-
         }
 
-        if (deleteDialogStatus.value){
+        if (deleteDialogStatus) {
 
             AlertDialog(
-                onDismissRequest = { deleteDialogStatus.value = false },
+                onDismissRequest = { deleteDialogStatus = false },
                 title = {
                     Text(text = "Delete")
                 },
@@ -249,73 +236,73 @@ fun MainPage() {
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            itemList.removeAt(clickedItemIndex.value)
-                            writeData(itemList, myContext)
-                            deleteDialogStatus.value = false
-                            Toast.makeText(myContext, "Item is removed from the list.",Toast.LENGTH_SHORT).show()
+                            itemList.removeAt(clickedItemIndex)
+                            deleteDialogStatus = false
+                            Toast.makeText(
+                                myContext,
+                                "Item is removed from the list.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     ) {
                         Text(text = "YES")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { deleteDialogStatus.value = false }) {
+                    TextButton(onClick = { deleteDialogStatus = false }) {
                         Text(text = "NO")
                     }
                 }
             )
-
         }
 
-        if (updateDialogStatus.value){
+        if (updateDialogStatus) {
 
             AlertDialog(
-                onDismissRequest = { updateDialogStatus.value = false },
+                onDismissRequest = { updateDialogStatus = false },
                 title = {
                     Text(text = "Update")
                 },
                 text = {
                     TextField(
-                        value = clickedItem.value,
-                        onValueChange = {clickedItem.value = it}
+                        value = clickedItem,
+                        onValueChange = { clickedItem = it }
                     )
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            itemList[clickedItemIndex.value] = clickedItem.value
-                            writeData(itemList,myContext)
-                            updateDialogStatus.value = false
-                            Toast.makeText(myContext, "Item is updated.",Toast.LENGTH_SHORT).show()
+                            itemList[clickedItemIndex] = clickedItem
+                            updateDialogStatus = false
+                            Toast.makeText(myContext, "Item is updated.", Toast.LENGTH_SHORT).show()
                         }
                     ) {
                         Text(text = "YES")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { updateDialogStatus.value = false }) {
+                    TextButton(onClick = { updateDialogStatus = false }) {
                         Text(text = "NO")
                     }
                 }
             )
-
         }
 
-        if (textDialogStatus.value){
+        if (textDialogStatus) {
 
             AlertDialog(
-                onDismissRequest = { textDialogStatus.value = false },
+                onDismissRequest = { textDialogStatus = false },
                 title = {
                     Text(text = "TODO Item")
                 },
                 text = {
-                    Text(text = clickedItem.value)
+                    Text(text = clickedItem)
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
 
-                            textDialogStatus.value = false
+                            textDialogStatus = false
 
                         }
                     ) {
@@ -323,9 +310,6 @@ fun MainPage() {
                     }
                 }
             )
-
         }
-
     }
-
 }
